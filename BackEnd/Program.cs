@@ -15,7 +15,7 @@ namespace BackEnd
         static string uri;
         static void Main(string[] args)
         {
-            Server("http://192.168.1.7:80/");
+            Server("http://*:80/");
         }
         static void Server(string uri)
         {
