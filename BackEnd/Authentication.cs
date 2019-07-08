@@ -15,12 +15,14 @@ namespace BackEnd
 {
     class Authentication
     {
+        // bad practice SqlConnection inheritance from IDisposable. Add method where realize using 
         private SqlConnection SqlConn = new SqlConnection("Data Source = Pasha;Initial Catalog=BookShop;Integrated Security=true;");
         private SqlCommand SqlComm;
         string PasswordHash = "";
         
         public Authentication()
         {
+            // same
             SqlComm = SqlConn.CreateCommand();
         }
         
@@ -34,6 +36,7 @@ namespace BackEnd
             nick = nick.ToLower();
             IsRepeated(mail, nick);
             HashPass(pass);
+            // don't use this, use some method for check query parameters (sql injection)
             SqlComm.CommandText = string.Format("Insert users (Email,NickName,Password,LogCookie,confirmed) Values('{0}','{1}','{2}','{3}','{4}')", mail, nick, PasswordHash,cookie.Value,Hash(mail));
             SqlConn.Open();
             try
@@ -127,17 +130,19 @@ namespace BackEnd
         /// <param name="strings"></param>
         void CheckForSymbols(int minsize, int maxsize, string pass,params string[] strings)
         {
-
+            // null reference exception, check for null first
             if (pass.Length <= minsize || pass.Length >= maxsize|| pass==null)
             {
                 throw new Exception("Неверный размер даных.");
             }
             foreach (string value in strings)
             {
+                // look higher 
                 if (value.Length <= minsize || value.Length >= maxsize ||value == null)
                 {
                     throw new Exception("Неверный размер даных.");
                 }
+                // 1. you initialization every time regexp or you use it how static below or use char.IsDigit and char.IsLetter
                 Regex regex = new Regex(@"^[^\W\s]+@?[^\W\s]+[.]?[^\W\s]+$");
                 if (!regex.IsMatch(value))
                 {
@@ -145,6 +150,7 @@ namespace BackEnd
                 }
             }
         }
+        // static Regex regex = new Regex(@"^[^\W\s]+@?[^\W\s]+[.]?[^\W\s]+$");
         void IsRepeated(string mail, string name)
         {
             SqlConn.Open();
