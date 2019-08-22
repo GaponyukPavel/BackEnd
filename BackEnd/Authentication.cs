@@ -15,6 +15,7 @@ namespace BackEnd
 {
     class Authentication
     {
+        // bad practice SqlConnection inheritance from IDisposable. Add method where realize using 
         private SqlConnection SqlConn = new SqlConnection("Data Source = Pasha;Initial Catalog=BookShop;Integrated Security=true;");
         private SqlCommand SqlComm;
         string PasswordHash = "";
@@ -22,6 +23,7 @@ namespace BackEnd
 
         public Authentication()
         {
+            // same
             SqlComm = SqlConn.CreateCommand();
         }
         
@@ -32,6 +34,7 @@ namespace BackEnd
             IsRepeated(mail.ToLower(), nick.ToLower());
             PasswordHash=Hash(pass);    
             SqlComm.CommandText = string.Format("Insert users (Email,NickName,Password,LogCookie,confirmed) Values('{0}','{1}','{2}','{3}','{4}')", mail.ToLower(), nick.ToLower(), PasswordHash,"",Hash(mail));
+
             SqlConn.Open();
             try
             {
