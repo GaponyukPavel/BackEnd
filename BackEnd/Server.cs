@@ -18,52 +18,49 @@ namespace BackEnd
         FileInfo Folder;
         string RequestBody;
         NameValueCollection Values;
-        Cookies cookie;
+        CookiesClass cookie;
         bool Login = false;
+        string Role=""; 
+        string Email="";
         byte[] buffer;
+        static Regex regex = new Regex(@"^/book/\d+.html$");
 
         public void GetResponse(object Context)
         {
             HttpListenerContext HContext = (HttpListenerContext)Context;
             HttpListenerRequest HRequest = HContext.Request;
             HttpListenerResponse HResponse = HContext.Response;
-           if (HRequest.RawUrl.Contains(".html") || HRequest.Url.AbsolutePath == "/")
+            
+            //Check user for login if he request html page and return his email and role
+            if (HRequest.RawUrl.Contains(".html") || HRequest.Url.AbsolutePath == "/")
             {
-                Login = Cookies.CheckForLogin(HRequest);
-                Console.WriteLine("CHEKED");
+                Login = CookiesClass.CheckForLogin(HRequest, out Role,out Email);
+                Console.WriteLine($"Login: {Login} Role: {Role}");
             }
+
+            // if request method POST
             if (HRequest.HttpMethod == "POST")
             {
                 using (StreamReader streamReader = new StreamReader(HRequest.InputStream))
                 {
-                    RequestBody = streamReader.ReadToEnd();
-                    Values = HttpUtility.ParseQueryString(RequestBody);
-                    try
+                    //if user change userpicture 
+                    if (HRequest.UrlReferrer.AbsolutePath == "/profile.html" && HRequest.ContentType.Split(new char[] { ';' })[0] == "multipart/form-data")
                     {
-                        cookie = new Cookies(Values.Get("mail"), Values.Get("pass"), HRequest.UserAgent);
-                    }
-                    catch { }
-                    if (HRequest.UrlReferrer.AbsolutePath == "/login.html")
-                    {
-                        try
-                        {
-                            new Authentication().Login(Values.Get("mail"), Values.Get("pass"), cookie);
-                            HResponse.Cookies.Add(cookie.Cookie);
-                            Login = true;
-                            HResponse.Redirect("/index.html");
-                            HResponse.OutputStream.Close();
-                        }
-                        catch (Exception e)
-                        {
-                            GetPage("/login.html", e.Message);
-                        }
+                        new PageBuilder().ChangeUserPic(HRequest, Email);
+                        GetPage("/profile.html");
                         return;
                     }
+
+                    //read Post data and write it to Values  
+                    RequestBody = streamReader.ReadToEnd();
+                    Values = HttpUtility.ParseQueryString(RequestBody);
+
+                    //if user try register 
                     if (HRequest.UrlReferrer.AbsolutePath == "/signup.html")
                     {
                         try
                         {
-                            new Authentication().AddUser(Values.Get("mail"), Values.Get("name"), Values.Get("pass"), cookie);
+                            new Authentication().AddUser(Values.Get("mail"), Values.Get("name"), Values.Get("pass"));
                             HResponse.Redirect("/confirm.html");
                         }
                         catch (Exception e)
@@ -74,30 +71,55 @@ namespace BackEnd
                         HResponse.OutputStream.Close();
                         return;
                     }
+
+                    //if user confirm his email
                     if (HRequest.UrlReferrer.AbsolutePath == "/confirm.html")
                     {
-                        new Authentication().Confirmed(Values, HResponse, HRequest);
-                        HResponse.Redirect("/index.html");
+                        if (!new Authentication().Confirmed(Values))
+                        {
+                            GetPage("/confirm.html","Неверный код");
+                            return;
+                        }
+                        HResponse.Redirect("/login.html");
                         HResponse.OutputStream.Close();
                         return;
                     }
+
+                    //if user leave a comment on book page 
                     if (HRequest.UrlReferrer.Segments[1] == "book/")
                     {
-                        int UserId=Cookies.GetUserIdByRequest(HRequest);
-                        if (UserId == 0)
+                        if (!Login)
                         {
                             GetPage(HRequest.UrlReferrer.AbsolutePath);
                             return;
                         }
-                        new PageBuilder().AddComment(Values["text"], HRequest.UrlReferrer.Segments[2].Replace(".html",""), UserId);
-                        GetPage(HRequest.UrlReferrer.AbsolutePath);
+
+                        if (Values["type"] == "review")
+                        {
+                            int UserId = CookiesClass.GetUserIdByRequest(HRequest);
+                            if (UserId == 0)
+                            {
+                                GetPage(HRequest.UrlReferrer.AbsolutePath);
+                                return;
+                            }
+                            new PageBuilder().AddComment(Values["text"], HRequest.UrlReferrer.Segments[2].Replace(".html", ""), UserId);
+                            GetPage(HRequest.UrlReferrer.AbsolutePath);
+                            return;
+                        }
+                    }
+
+                    //if requested not a html page
+                    if (!HRequest.Url.AbsolutePath.Contains(".html"))
+                    {
+                        GetStuf(HRequest.Url.AbsolutePath);
                         return;
                     }
                     GetErrorPage("/400.html", 400);
                     return;
                 }
-            }//Если метод запоса Post
+            }
 
+            // if request method GET
             if (HRequest.HttpMethod == "GET")
             {
                 if (HRequest.Url.AbsolutePath == "/")
@@ -112,89 +134,70 @@ namespace BackEnd
                 }
                 GetPage(HRequest.Url.AbsolutePath);
                 return;
-            }//Если метод запоса Get
+            }
+
+            //if request method not GET or POST return error page
             GetErrorPage("/405.html", 405);
             return;
-
+            
+            //send page to user
             void GetPage(string url, string message = "", int StatusCode = 200)
             {
                 Values = HttpUtility.ParseQueryString(HRequest.Url.Query);
-                Regex regex = new Regex(@"^/book/\d+.html$");//Извлекает id товара
-                int id = 0;
-                if (regex.IsMatch(url))
+                foreach (var item in Values)
                 {
-                    regex = new Regex(@"\d+");
-                    id = Int32.Parse(regex.Match(url).Groups[0].Value);
-                    url = "/book.html";
+                    Console.WriteLine($"\t{url} : {item} : {Values[(string)item]}");
                 }
-
+                if (regex.IsMatch(url))
+                    url = "/book.html";
                 if (Login)
                 {
-                    Folder = new FileInfo(Environment.CurrentDirectory + "/web/Login" + url);
+                    try
+                    {
+                        Folder = new FileInfo(Environment.CurrentDirectory + "/web/Login" + url);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        GetErrorPage("/404.html", 404);
+                        return;
+                    }
                 }
                 else
                 {
-                    Folder = new FileInfo(Environment.CurrentDirectory + "/web/Not" + url);
+                    try
+                    {
+                        Folder = new FileInfo(Environment.CurrentDirectory + "/web/Not" + url);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                        GetErrorPage("/404.html", 404);
+                        return;
+                    }
                 }
-                
+
                 if (!Folder.Exists)
                 {
                     GetErrorPage("/404.html", 404);
                     return;
                 }
-                string page;
-                switch (url)
-                {
-                    case "/book.html":
-                        try
-                        {
-                            buffer = new PageBuilder().GetBookPage(id, Folder.FullName);
-                        }
-                        catch(Exception e)
-                        {
-                            GetPage("/index.html");
-                            Console.WriteLine(e.Message);
-                            return;
-                        }
-                        break;
 
-                    case "/index.html":
-                        try
-                        {
-                            buffer = new PageBuilder().GetIndexPage(Values, Folder.FullName);
-                        }
-                        catch(Exception e)
-                        {
-                            Console.WriteLine(e.Message);
-                            GetPage("/index.html", e.Message);
-                            return;
-                        }
-                        break;
-                }
                 if (buffer == null)
                 {
-                    if (!string.IsNullOrWhiteSpace(message))
+                    string page;
+                    using (StreamReader StrReader = new StreamReader(Folder.FullName))
                     {
-                        using (StreamReader StrReader = new StreamReader(Folder.FullName))
-                        {
-                            page = StrReader.ReadToEnd();
-                        }
-                        page = page.Replace("<div id=\"error_id\">", "<div id=\"error_id\">" + message);
-                        buffer = Encoding.UTF8.GetBytes(page);
+                        page = StrReader.ReadToEnd();
                     }
-                    else
-                    {
-                        FileStream fileStream = Folder.OpenRead();
-                        buffer = new byte[fileStream.Length];
-                        BinaryReader reader = new BinaryReader(fileStream);
-                        reader.Read(buffer, 0, buffer.Length);
-                        reader.Close();
-                    }
+                    page = page.Replace("<div id=\"error_id\">", "<div id=\"error_id\">" + message);
+                    buffer = Encoding.UTF8.GetBytes(page);
+
                 }
 
                 HResponse.StatusCode = StatusCode;
                 HResponse.ContentLength64 = buffer.Length;
-                
+
                 try
                 {
                     HResponse.OutputStream.Write(buffer, 0, buffer.Length);
@@ -209,6 +212,7 @@ namespace BackEnd
                 }
                 return;
             }
+            //send error page to user
             void GetErrorPage(string url, int StatusCode)
             {
                 Folder = new FileInfo(Environment.CurrentDirectory + "/web/errors" + url);
@@ -228,40 +232,136 @@ namespace BackEnd
                 if (url != "/404.html")
                 {
                     GetErrorPage("/404.html", 404);
-                }
-                else
-                {
-                    HResponse.OutputStream.Close();
-                    return;
-                }
-            }
-            void GetStuf(string url)
-            {
-                Console.WriteLine(url);
-                Folder = new FileInfo(Environment.CurrentDirectory + "/web" + url);
-                if (Folder.Exists)
-                {
-                    FileStream fileStream = Folder.OpenRead();
-                    buffer = new byte[fileStream.Length];
-                    BinaryReader reader = new BinaryReader(fileStream);
-                    reader.Read(buffer, 0, buffer.Length);
-                    reader.Close();
-                    HResponse.ContentLength64 = buffer.Length;
-                    try
-                    {
-                        HResponse.OutputStream.Write(buffer, 0, buffer.Length);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                    }
-                    finally
-                    {
-                        HResponse.OutputStream.Close();
-                    }
                     return;
                 }
                 HResponse.OutputStream.Close();
+                  
+            }
+            //send page stuf(.cs .js img etc)
+            void GetStuf(string url)
+            {
+                switch (url)
+                {
+                    case "/Login":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+
+                            cookie = new CookiesClass(Values.Get("mail"), Values.Get("pass"), HRequest.UserAgent);
+                            HResponse.Cookies.Add(cookie.MyCookie);
+                            Login = true;
+                            buffer = new byte[] {1};
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] { };
+                            Console.WriteLine(e);
+                        }
+                        break;
+                    case "/InCart":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+                            Values = HttpUtility.ParseQueryString(HRequest.Url.Query);
+                            buffer = new PageBuilder().GetCartPageValuesForJS(Values);
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] { };
+                            Console.WriteLine(e);
+                        }
+                        break;
+                    case "/Index":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+                            Values = HttpUtility.ParseQueryString(HRequest.Url.Query);
+                            buffer = new PageBuilder().GetIndexPageValuesForJS(Values);
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] { };
+                            Console.WriteLine(e);
+                        }
+                        break;
+                    case "/BookPage":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+                            Values = HttpUtility.ParseQueryString(HRequest.Url.Query);
+                            buffer = new PageBuilder().GetBookPageValuesForJS(Values);
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] { };
+                            Console.WriteLine(e);
+                        }
+                        break; 
+                        case "/GetComments":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+                            Values = HttpUtility.ParseQueryString(HRequest.Url.Query);
+                            buffer = new PageBuilder().GetCommentsValuesForJS(Values);
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] { };
+                            Console.WriteLine(e);
+                        }
+                        break;
+                    case "/GetLike":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+                            Values = HttpUtility.ParseQueryString(HRequest.Url.Query);
+                            buffer = new PageBuilder().GetLikeValuesForJS(Values);
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] { };
+                            Console.WriteLine(e);
+                        }
+                        break;
+                    case "/Profile":
+                        try
+                        {
+                            HResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+                            buffer = new PageBuilder().GetProfileValuesForJS(HRequest);
+                        }
+                        catch (Exception e)
+                        {
+                            buffer = new byte[] {};
+                            Console.WriteLine(e);
+                        }
+                        break;
+                    default:
+                        Folder = new FileInfo(Environment.CurrentDirectory + "/web" + url);
+                        if (!Folder.Exists)
+                        {
+                            HResponse.OutputStream.Close();
+                            return;
+                        }
+                        FileStream fileStream = Folder.OpenRead();
+                        buffer = new byte[fileStream.Length];
+                        BinaryReader reader = new BinaryReader(fileStream);
+                        reader.Read(buffer, 0, buffer.Length);
+                        reader.Close();
+                        break;
+                }
+                try
+                {
+                    HResponse.ContentLength64 = buffer.Length;
+                    HResponse.OutputStream.Write(buffer, 0, buffer.Length);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+                finally
+                {
+                    HResponse.OutputStream.Close();
+                }
                 return;
             }
         }

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Регистрация</title>
+	<link rel="stylesheet" href="/css/signup.css">
+	<link rel="icon" href="/img/favicon.png" type="image/png" sizes="16x16">
+	<script src="/js/md5.js"> </script>
+	<script src="/js/signup.js"></script>
+</head>
+<body>
+	<div class="container">
+		<div class="aut-body">
+			<div class="aut-head"><h2>Регистрация</h2><a href="/index.html"id="close"><div>☓</div></a></div>
+			<form class="aut-form" method="post" name="aut-form">
+				<div id="error_id"></div>
+				<input type="email" placeholder="@mail" name="mail" minlength="6" maxlength="40" required>
+				<span id="error_pass">Пароли не совпадают</span>
+				<input type="text" placeholder="имя пользователя" name="name" minlength="6" maxlength="20" required>
+				<input type="password" placeholder="Пароль" name="pass" id="pass" autocomplete="off" minlength="6" maxlength="20" required>
+				<input type="password" placeholder="Подтвердите Пароль" id="pass2" autocomplete="off" required>
+				<button class="btn">Регистрация</button>
+			</form>
+			<a class="txt btn" href="/login.html">Войти</a>
+		</div>
+	</div>
+	</div>
+</body>
+</html>

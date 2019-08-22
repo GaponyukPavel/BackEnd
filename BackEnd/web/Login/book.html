@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>BookShop</title>
+	<link rel="stylesheet" href="/css/main.css">
+	<link rel="stylesheet" href="/css/book.css">
+	<link rel="icon" href="/img/favicon.png" type="image/png" sizes="16x16">
+	<script src="/js/main.js"></script>
+	<script src="/js/book.js"></script>
+</head>
+<body>
+	<header>
+		<div class="container">
+			<nav>
+				<ul class="menu">
+					<li><a href="/profile.html">Профиль</a></li>
+					<li><a href="/help.html">Справка</a></li>
+					<li><a href="/index.html" onclick="exit();">Выйти</a></li>
+				</ul>
+			</nav>
+			<div class="top-panel">
+				<a href="/index.html" class="logo"><img src="/img/logo.png" alt="BookShop"></a>
+				<form action="/index.html" name="form" class="top-form" id="top-form">
+					<input type="text" name="search" placeholder="Введите название" autocomplete="off" class="top-form-text" maxlength="40">
+					<div class="under-img">
+						<a class="top-form-btn" id="top-form-btn" ><img src="/img/search.png">Искать</a>
+					</div>
+				</form>
+				<div class="cart">
+					<a href="/cart.html">
+					<div class="cartup">
+						<img src="/img/cart.png" alt="cart"><div id="space"></div><p>Корзина<br><span id="cartspan"></span></p>
+					</div>
+					<div class="cartdown">
+						<p id="cost">0$</p>
+					</div>
+					</a>
+				</div>
+			</div>
+		</div>
+	</header>
+	<section>
+		<div class="container">
+			<div class="head">
+				<img src="/book-pic" alt="book" id="BOOKPIC" onerror='this.src="/img/books/default.jpg"'>
+				<div class="description">
+					<div class="name-author">
+						<h1 id="BOOKNAME"></h1><a id="AUTHOR" href="/index.html"></a>
+					</div>
+				<hr>
+				<p id="DESCRIPTION"></p>
+				<div class="price">
+					<p>Цена:<span id="PRICE"></span>$</p><p id="dis">Скидка: <span id="DISCOUNT"></span>%</p>
+					<div class="btn">
+						<input type="text" name="type" value="cart" hidden="true">
+						<a id="AddInCart" class="book-btn">В корзину</a>
+					</div>
+				</div>
+				</div>
+			</div>
+			<div class="under">
+				<div class="info-review">
+					<div class="info">
+						<input type="radio" name="tab" id="tab1" checked="true"> 
+							<label for="tab1">Информация о книге</label>
+						<input type="radio" name="tab" id="tab2"> 
+							<label for="tab2">Детали</label>
+							<input hidden type="text" id="BookId">
+						<div id="info">
+							<p id="INFO"></p>
+						</div>
+						<div id="details">
+							<table id="detailsTable" hidden>
+								<tr>
+									<td>Дата выпуска</td>
+									<td id="RELEASEDATE"></td>
+								</tr>
+								<tr>
+									<td>Жанр</td>
+									<td id="GENRE"></td>
+								</tr>
+								<tr>
+									<td id="DETAILS"></td>
+								</tr>
+								<tr id="ex">
+									<td></td>
+									<td></td>
+								</tr>
+							</table>
+						</div>
+					
+					</div>
+					<div class="review">
+						<h3>Отзывы</h3>
+						<div id="comment"></div>
+						<div class="leavecomment">
+							<form method="POST">
+								<h3>Оставить отзыв</h3>
+								<textarea name="text"cols="30" rows="10"></textarea>
+								<input type="text" name="type" value="review" hidden="true">
+								<input type="submit" value="Отправить">
+							</form>
+						</div>
+					</div>	
+				</div>
+				<div class="like">
+					<h4>Посмотрите также</h4>
+					<div id="GetLike">
+						<img alt="book pic"src="LIKEBOOKPIC">
+						<div>
+							<h5>LIKEBOOKNAME</h5>
+							<p>LIKEPRICE$</p>
+							<a href="/book/LIKEBOOKID.html" class="book-btn">Перейти</a>
+						</div>
+					</div>
+
+				</div>
+			</div>	
+		</div>
+	</section>
+	<footer>
+		<div class="container">
+			<p>Общество с ограниченной ответственностью «BookShop»<br>
+			Юридический адрес: 27 Silver St, Stockton-on-Tees TS18 1SX <br>Email: BookShop43@bk.ru<br>
+			+375 17 777 77 77<br>+375 17 777 77 76 (факс)</p>
+			<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3266.267393668023!2d-1.312288747170978!3d54.56437555350667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x327e6cf26a4eed2e!2sDrake+The+Bookshop!5e0!3m2!1sru!2sby!4v1565690374276!5m2!1sru!2sby" width="450" height="140" frameborder="0" style="border:0;float:left;" allowfullscreen></iframe>
+		</div>
+	</footer>
+</body>
+</html>

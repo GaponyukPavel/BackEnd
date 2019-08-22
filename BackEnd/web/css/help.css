@@ -1,0 +1,30 @@
+.MainHelpClass
+{
+	margin-right: auto;
+	margin-left: auto;
+}
+.MainHelpClass h1
+{
+	margin: 13px 0 5px 0;
+}
+.MainHelpClass ul li:before
+{
+	content:"-";
+}
+.MainHelpClass ul li
+{
+	margin-bottom: 2px;
+}
+.MainHelpClass ul 
+{
+	list-style: none;
+	position: relative;
+    left: 5px;
+}
+.MainHelpClass ul a
+{
+	color: #003399;
+	border-bottom: 1px #003399 dotted;
+}
+.mapdiv
+{display: flex;}

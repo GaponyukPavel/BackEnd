@@ -14,29 +14,29 @@ namespace BackEnd
     class PageBuilder
     {
         SqlConnection sqlconn = new SqlConnection("Data source=Pasha;Initial Catalog=BookShop;Integrated Security=true;");
-        SqlConnection sqlconn2 = new SqlConnection("Data source=Pasha;Initial Catalog=BookShop;Integrated Security=true;");
         SqlCommand sqlCommand;
         string page;
         public PageBuilder()
         {
             sqlCommand = sqlconn.CreateCommand();
         }
-        public void AddBookPage(string BookName, string Description, string BookPicPath, double Price, string Info)
-        {
-            if (string.IsNullOrWhiteSpace(BookPicPath))
-                BookPicPath ="../img/books.default.jpg";
-            sqlCommand.CommandText =string.Format( "Insert Books (BookName,Description,BookPic,Price,Info) Values('{0}','{1}','{2}','{3}','{4}');",BookName,Description,BookPicPath,Price,Info);
-            sqlconn.Open();
-            sqlCommand.ExecuteNonQuery();
-            sqlconn.Close();
-        }
+        //public void AddBookPage(string BookName, string Description, string BookPicPath, double Price, string Info)
+        //{
+        //    if (string.IsNullOrWhiteSpace(BookPicPath))
+        //        BookPicPath = "../img/books.default.jpg";
+        //    sqlCommand.CommandText = string.Format("Insert Books (BookName,Description,BookPic,Price,Info) Values('{0}','{1}','{2}','{3}','{4}');", BookName, Description, BookPicPath, Price, Info);
+        //    sqlconn.Open();
+        //    sqlCommand.ExecuteNonQuery();
+        //    sqlconn.Close();
+        //}
+
         /// <summary>
-        /// Возвращает массив байтов сгенерированной страницы Book.html
+        /// generate book page values array for JavaScript
         /// </summary>
-        /// <param name="id">id страницы</param>
-        /// <returns></returns>
-        public byte[] GetBookPage(int id, string Folder)
+        public byte[] GetBookPageValuesForJS(NameValueCollection Values)
         {
+            int id = 1;
+            int.TryParse(Values["id"], out id);
             sqlCommand.CommandText = string.Format("Select * from Books Where Bookid='{0}';", id);
             sqlconn.Open();
             SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
@@ -44,80 +44,97 @@ namespace BackEnd
             {
                 throw new Exception();
             }
-            using (StreamReader StrReader = new StreamReader(Folder))
+            for (int b = 0; b < sqlDataReader.FieldCount; b++)
             {
-                page = StrReader.ReadToEnd();
+                page += $"{sqlDataReader.GetName(b).ToUpper()}::{sqlDataReader[b]}:::";
             }
-            //main section
-            string BookName = (string)sqlDataReader["BookName"];
-            string Author = (string)sqlDataReader["Author"];
-            page = page.Replace("<h1 id=\"Name\">", "<h1 id=\"Name\">" + BookName);//BookName
-            page = page.Replace("<p id=\"description\">", "<p id=\"description\">" + sqlDataReader["Description"]);//Description
-            page = page.Replace("<img src=\"/book-pic", "<img src=\"" + sqlDataReader["BookPic"]);//BookPic
-            page = page.Replace("<p id=\"price\">", "<p id=\"price\">Цена: " + sqlDataReader["Price"].ToString().Remove(5) + "$");//Price
-            if ((int)sqlDataReader["discount"] > 0)
-                page = page.Replace("<p id=\"dis\">", "<p id=\"dis\">Скидка: " + sqlDataReader["discount"] + "%");//discount
-            page = page.Replace("<p id=\"infop\">", "<p id=\"infop\">" + sqlDataReader["Info"]);//Info
-            page = page.Replace("a href=\"\" id=\"author\">", $"a href=\"/index.html?search={Author}\" id=\"author\">" + Author);//author
-            string detailsFromDB = (string)sqlDataReader["details"];
-            string endDetails = string.Format("<tr> <td>Жанр</td> <td><a>{0}</a></td> <tr/>", sqlDataReader["Genre"]);//Genre
-            try
-            {
-                DateTime release = (DateTime)sqlDataReader["releasedate"];
-                endDetails += string.Format("<tr> <td>Дата выпуска</td> <td>{0}</td> <tr/>", release.ToShortDateString());
-            }
-            catch
-            { }
+            page = page.Remove(page.Length - 3);
             sqlDataReader.Close();
-            //details section
-            NameValueCollection collection = HttpUtility.ParseQueryString(detailsFromDB);
-            foreach (string key in collection.AllKeys)
-            {
-                endDetails += string.Format("<tr> <td>{0}</td> <td>{1}</td> <tr/>", key, collection[key]);
-            }
-            page = page.Replace("<table id=\"table\">", "<table id=\"table\">" + endDetails);
-            //like section
-            if (BookName.Length > 7)
-                BookName = (BookName.Remove(BookName.Length - 3, 3)).Remove(0, 3);
-            sqlCommand.CommandText = $"Select top(3) bookid,price,bookname,author,bookpic from Books where bookname like '%{BookName}%' or author like '{Author}' order by author";
-            sqlDataReader = sqlCommand.ExecuteReader();
-            string like = "";
-            for (int i = 0; i < 3 && sqlDataReader.Read(); i++)
-            {
-                like += $"<div><img alt=\"book pic\"src=\"{sqlDataReader["bookpic"]}\"><div><h5>{sqlDataReader["bookname"]}</h5><p>{sqlDataReader["price"].ToString().Remove(5)}$</p><a href=\"/book/{sqlDataReader["bookid"]}.html\" class=\"book-btn\">Перейти</a></div></div>";
-            }
-            sqlDataReader.Close();
-            page=page.Replace("<h4>Посмотрите также</h4>", "<h4>Посмотрите также</h4>" + like);
-            //comment section
-            sqlCommand.CommandText = $"select top(3) * from review where bookid={id}";
-            sqlDataReader = sqlCommand.ExecuteReader();
-            string Comment = "";
-            sqlconn2.Open();
-            while (sqlDataReader.Read())
-            {
-                SqlCommand command = new SqlCommand($"Select nickname,userpic From Users where userid={sqlDataReader["userid"]}", sqlconn2);
-                SqlDataReader reader = command.ExecuteReader();
-                reader.Read();
-                Comment += $"<div class=\"comment\"><div><img id=\"userpic\"src=\"{reader["userpic"]}\"alt=\"User picture\"><p>{reader["nickname"]}</p></div><p>{sqlDataReader["reviewtext"]}</p></div>";
-            }
-            sqlconn2.Close();
-
-            page = page.Replace("<div class=\"comment\"/>",Comment);
-            sqlconn.Close();
             return Encoding.UTF8.GetBytes(page);
         }
         /// <summary>
-        /// Генерирует Index page
+        /// generate book page comments array for JavaScript
         /// </summary>
-        /// <param name="Values">Параметры для генерации</param>
-        /// <returns></returns>
-        public byte[] GetIndexPage(NameValueCollection Values,string Folder)
+        public byte[] GetCommentsValuesForJS(NameValueCollection Values)
+        {
+            int id = 1;
+            int.TryParse(Values["id"], out id);
+
+            sqlCommand.CommandText = $"select top(3) reviewtext,userid from review where bookid={id}";
+            sqlconn.Open();
+            SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
+            string Comment = "";
+            while (sqlDataReader.Read())
+            {
+                Comment += $"{sqlDataReader["reviewtext"]}::";
+
+                SqlConnection sqlConnection = new SqlConnection("Data source=Pasha;Initial Catalog=BookShop;Integrated Security=true;");
+                SqlCommand sqlCommand = sqlConnection.CreateCommand();
+                sqlCommand.CommandText = $"Select nickname,userpic From Users where userid={sqlDataReader["userId"]}";
+
+                sqlConnection.Open();
+                SqlDataReader sqlDataReader2 = sqlCommand.ExecuteReader();
+                sqlDataReader2.Read();
+                Comment += $"{sqlDataReader2["userpic"]}::{sqlDataReader2["nickname"]}";
+                sqlConnection.Close();
+                Comment += "::\n::";
+            }
+            if(!string.IsNullOrEmpty(Comment))
+                Comment = Comment.Remove(Comment.Length-5);
+            sqlconn.Close();
+            return Encoding.UTF8.GetBytes(Comment);
+        }
+        /// <summary>
+        /// generate like section array for JavaScript
+        /// </summary>
+        public byte[] GetLikeValuesForJS(NameValueCollection Values)
+        {
+            int id = 1;
+            int.TryParse(Values["id"], out id);
+            string BookName = string.IsNullOrEmpty(Values["BookName"]) ? "" : Values["BookName"];
+            string Author = string.IsNullOrEmpty(Values["Author"]) ? "" : Values["Author"];
+            if (BookName.Length > 5)
+                BookName = BookName.Remove(5);
+            sqlCommand.CommandText = $"Select TOP(3) bookid,price,bookname,author,bookpic from Books where bookid != {id} and (bookname like '%{BookName}%' or author like '{Author}') ORDER BY NEWID()";
+            sqlconn.Open();
+            SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
+            string like = "";
+            for (int i = 0; i < 3 && sqlDataReader.Read(); i++)
+            {
+                for (int b = 0; b < sqlDataReader.FieldCount; b++)
+                {
+                    like += $"{sqlDataReader.GetName(b).ToUpper()}::{sqlDataReader[b]}:::";
+                }
+                like = like.Remove(like.Length - 3) + "\n";
+            }
+            if (!string.IsNullOrEmpty(like))
+                like = like.Remove(like.Length - 1);
+            sqlDataReader.Close();
+            sqlconn.Close();
+            return Encoding.UTF8.GetBytes(like);
+        }
+
+        /// <summary>
+        /// generate index page array for JavaScript
+        /// </summary>
+        /// <param name="Values"></param>
+        public byte[] GetIndexPageValuesForJS(NameValueCollection Values)
         {
             string Main = "";
             string Second = "";
             string Command = "";
-            int RowCount;
-            int CurentPage =Values["page"] == null? 1:int.Parse(Values["page"]);
+            string Serch = "";
+            page = "";
+            int PageCount;
+            int CurentPage;
+            #region Проверка входящих значений на корректность и создание команды для sql
+
+            if (!int.TryParse(Values["page"], out CurentPage))
+                CurentPage = 1;
+            if (CurentPage < 0)
+            {
+                CurentPage = 1;
+            }
             switch (Values["main"])
             {
                 case "Все":
@@ -130,7 +147,7 @@ namespace BackEnd
                     Main += string.Format("Select BookPic,BookName,Discount,BookId,genre,price,author from Books Where releaseDate>'{0}' and Price>0", DateTime.Today.AddMonths(-1));
                     break;
                 case "Распродажа":
-                    Main += string.Format("Select BookPic,BookName,Discount,BookId,genre,price,author from Books Where Discount>0 and Price>0");
+                    Main += string.Format("Select BookPic,BookName,Discount,BookId,genre,price,author from Books Where Discount>0 and Price>0  order by Discount OFFSET 0 ROWS");
                     break;
                 default:
                     Values["main"] = "Все";
@@ -138,79 +155,241 @@ namespace BackEnd
             }
             if (Values["second"] == null)
                 Values["second"] = "Все";
-            Second = string.Format("select * from ({0}) as a where genre like \'%{1}%\'",Main, Values["second"]=="Все"?"": Values["second"]);
-            if(Values["search"]==null)
-                Values["search"]="";
-            if (Values["search"].Contains("\'"))
-                Values["search"] = Values["search"].Replace("\'", "");
-            Command = string.Format("Select * From ({0}) as b Where Bookname Like \'%{1}%\' or author Like \'%{1}%\'", Second, Values["search"]);
-            Command = $"Select Count(*) From ({Command}) as z;"+Command;
-            using (StreamReader StrReader = new StreamReader(Folder))
-            {
-                page = StrReader.ReadToEnd();
-            }
+            Second = string.Format("select * from ({0}) as a where genre like \'%{1}%\'", Main, Values["second"] == "Все" ? "" : Values["second"]);
+            if (Values["search"] != null)
+                Serch = Values["search"];
+            if (Serch.Contains("\'"))
+                Serch = Serch.Replace("\'", "");
+            Command = string.Format("Select * From ({0}) as b Where Bookname Like \'%{1}%\' or author Like \'%{1}%\'", Second, Serch);
+            Command = $"Select Count(*) From ({Command}) as z;{Command} ORDER BY Bookid OFFSET {CurentPage * 15 - 15}ROWS FETCH NEXT 15 ROWS ONLY";
+            #endregion
             sqlCommand.CommandText = Command;
             sqlconn.Open();
             SqlDataReader sqlDataReader = sqlCommand.ExecuteReader();
             sqlDataReader.Read();
-            RowCount = (int)sqlDataReader[0];
-            if (RowCount % 15 > 0)
+            PageCount = (int)sqlDataReader[0];
+            if (PageCount % 15 > 0)
             {
-                RowCount /= 15;
-                RowCount++;
+                PageCount /= 15;
+                PageCount++;
             }
             else
             {
-                RowCount /= 15;
+                PageCount /= 15;
             }
-            string RowString="";
-            for (int i = CurentPage-5<1 ? 1:CurentPage-5;i< CurentPage + 5; i++)
-            {
-                if (i > RowCount)
-                    break;
-                if (i == CurentPage)
-                {
-                    RowString += string.Format("<input id=\"{0}\"name=\"page\"type=\"radio\"checked=\"true\" value={1}><label for=\"{2}\"><a>{3}</a></label>",i,i,i,i);
-                    continue;
-                }
-                RowString += string.Format("<input id=\"{0}\"name=\"page\"type=\"radio\"value={1}><label for=\"{2}\"><a>{3}</a></label>", i, i, i, i);
-            }
-            page = page.Replace("<div class=\"pages\">", "<div class=\"pages\">"+RowString);
             sqlDataReader.NextResult();
-
-            for (int i=1;i<CurentPage; i++)
-            {
-                for (int a = 0; a < 15; a++)
-                {
-                    sqlDataReader.Read();
-                }
-            }
-            for (int i = 1;i<16;i++)
+            page += $"TotalPage/CurentPage::{PageCount}::{CurentPage}\n";
+            for (int i = 1; i < 16; i++)
             {
                 if (!sqlDataReader.Read())
                     break;
-                if ((int)sqlDataReader[2] > 0)
+                for (int b = 0; b < sqlDataReader.FieldCount; b++)
                 {
-                    page = page.Replace($"<td id=\"book{i}\">", $"<td id=\"book{i}\">" + $"<a href=\"/book/{sqlDataReader[3]}.html\"><div class=\"discount\"><div class=\"discount-img\"><p>-{sqlDataReader[2]}%</p><img src=\"/img/discount.png\"></div><img src=\"{sqlDataReader[0]}\"></div><h4>{sqlDataReader[1]}</h4><p>{sqlDataReader[5].ToString().Remove(5)} $</p></a>");
+                    page += $"{sqlDataReader.GetName(b).ToUpper()}::{sqlDataReader[b]}:::";
                 }
-                else
-                {
-                page = page.Replace($"<td id=\"book{i}\">", $"<td id=\"book{i}\">"+$"<a href=\"/book/{sqlDataReader[3]}.html\"><div class=\"discount\"><img src=\"{sqlDataReader[0]}\"></div><h4>{sqlDataReader[1]}</h4><p>{sqlDataReader[5].ToString().Remove(5)} $</p></a>");
-                }
+                page = page.Remove(page.Length - 3) + "\n";
             }
-            page = page.Replace("<input type=\"text\" name=\"search\"", "<input type=\"text\" name=\"search\"" + Values["search"]);
-            page = page.Replace($"name=\"main\" value=\"{Values["main"]}\"", $"name=\"main\" value=\"{Values["main"]}\""+ "checked=\"true\"");
-            page = page.Replace($"name=\"second\" value=\"{Values["second"]}\"", $"name=\"second\" value=\"{Values["second"]}\""+ "checked=\"true\"");
-            page = page.Replace($"class=\"top-form-text\"", $"class=\"top-form-text\" value=\"{Values["search"]}\"");
             sqlDataReader.Close();
             sqlconn.Close();
             return Encoding.UTF8.GetBytes(page);
         }
-        public void AddComment(string Comment,string BookId,int UserId)
+        /// <summary>
+        /// generate cart page array for JavaScript
+        /// </summary>
+        /// <param name="Values"></param>
+        public byte[] GetCartPageValuesForJS(NameValueCollection Values)
+        {
+            string content = "";
+            if (!string.IsNullOrEmpty(Values["books"]))
+            {
+                string BooksInCartValue = "";
+                string TotalBooks = "";
+                double TotalCost = 0;
+                string[] buy = Values["books"].Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                BooksInCartValue = string.Join(",", buy);
+                string command = $"Select Bookid,bookpic,Bookname,author,defaultprice,price,discount from Books where bookid in ({BooksInCartValue})";
+                sqlCommand.CommandText = command;
+                sqlconn.Open();
+                SqlDataReader Reader = sqlCommand.ExecuteReader();
+                while (Reader.Read())
+                {
+                    for (int b = 0; b < Reader.FieldCount; b++)
+                    {
+                        content += $"{Reader.GetName(b).ToUpper()}::{Reader[b]}:::";
+                    }
+                    content = content.Remove(content.Length - 3) + "\n";
+                    TotalBooks += Reader["bookid"] + ",";
+                    TotalCost += (double)Reader["price"];
+                }
+                content += $"{TotalBooks}:::{TotalCost}";
+                sqlconn.Close();
+            }
+            return Encoding.UTF8.GetBytes(content);
+        }
+        /// <summary>
+        /// generate profile values array for JavaScript
+        /// </summary>
+        public byte[] GetProfileValuesForJS(HttpListenerRequest HRequest)
+        {
+            if (HRequest.Cookies["logCookie"] == null || string.IsNullOrEmpty(HRequest.Cookies["logCookie"].Value))
+            {
+                return new byte[] {}; 
+            }
+            string CookieValue = HRequest.Cookies["logCookie"].Value;
+            string UserAgent = HRequest.UserAgent;
+            if (UserAgent == null)
+                UserAgent = "";
+            CookieValue = Authentication.Hash(CookieValue + UserAgent);
+            sqlCommand.CommandText = string.Format("Select NickName,Role,UserPic,email From Users Where LogCookie='{0}';", CookieValue);
+            sqlconn.Open();
+            SqlDataReader Reader = sqlCommand.ExecuteReader();
+            string answer = "";
+            if (Reader.Read())
+            {
+                for (int a = 0; a < Reader.FieldCount; a++)
+                {
+                    answer += $"{Reader.GetName(a)}={Reader[a]};";
+                }
+                sqlconn.Close();
+                return Encoding.UTF8.GetBytes(answer);
+            }
+            sqlconn.Close();
+            return new byte[] {};
+
+        }
+        /// <summary>
+        /// MEthod to change user picture
+        /// </summary>
+        public void ChangeUserPic(HttpListenerRequest Hrequest,string UserEmail)
+        {
+            string boundary ="--" + Hrequest.ContentType.Split(';')[1].Split('=')[1];
+            Stream inputStream = Hrequest.InputStream;
+            Encoding contentEnc = Hrequest.ContentEncoding;
+            Byte[] boundaryBytes = contentEnc.GetBytes(boundary);
+            int boundaryLen = boundaryBytes.Length;
+            using (FileStream output = new FileStream(Environment.CurrentDirectory+"/web/img/users/"+UserEmail+".png", FileMode.Create, FileAccess.Write))
+            {
+                Byte[] buffer = new Byte[1024];
+                int len = inputStream.Read(buffer, 0, 1024);
+                int startPos = -1;
+                string ContentType;
+
+                // Find start pos
+                while (true)
+                {
+                    if (len == 0)
+                    {
+                        throw new Exception("Start Boundaray Not Found");
+                    }
+
+                    startPos = IndexOf(buffer, len, boundaryBytes);
+                    if (startPos >= 0)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        Array.Copy(buffer, len - boundaryLen, buffer, 0, boundaryLen);
+                        len = inputStream.Read(buffer, boundaryLen, 1024 - boundaryLen);
+                    }
+                }
+
+                // Skip four lines (Boundary, Content-Disposition, Content-Type, and a blank)
+                for (int i = 0; i < 4; i++)
+                {
+                    int lastPos;
+                    byte[] ContentTypebyte;
+                    while (true)
+                    {
+                        if (len == 0)
+                        {
+                            throw new Exception("Preamble not Found.");
+                        }
+                        lastPos = startPos;
+                        startPos = Array.IndexOf(buffer, contentEnc.GetBytes("\n")[0], startPos);
+                        if (i == 2)
+                        {
+                            int masSize = startPos - lastPos-1;
+                            ContentTypebyte = new byte[masSize];
+                            Array.Copy(buffer, lastPos, ContentTypebyte, 0, masSize);
+                            ContentType = Encoding.UTF8.GetString(ContentTypebyte);
+                            if (ContentType.Contains("Content-Type:"))
+                            {
+                                ContentType = ContentType.Split('/')[1];
+                                if (ContentType != "jpeg" && ContentType != "png")
+                                    break;
+                            }
+                            else
+                            {
+                                return;
+                            }
+                        }
+                        
+                        if (startPos >= 0)
+                        {
+                            startPos++;
+                            break;
+                        }
+                        else
+                        {
+                            len = inputStream.Read(buffer, 0, 1024);
+                        }
+                    }
+                }
+
+                Array.Copy(buffer, startPos, buffer, 0, len - startPos);
+                len = len - startPos;
+
+                while (true)
+                {
+                    int endPos = IndexOf(buffer, len, boundaryBytes);
+                    if (endPos >= 0)
+                    {
+                        if (endPos > 0) output.Write(buffer, 0, endPos - 2);
+                        break;
+                    }
+                    else if (len <= boundaryLen)
+                    {
+                        throw new Exception("End Boundaray Not Found");
+                    }
+                    else
+                    {
+                        output.Write(buffer, 0, len - boundaryLen);
+                        Array.Copy(buffer, len - boundaryLen, buffer, 0, boundaryLen);
+                        len = inputStream.Read(buffer, boundaryLen, 1024 - boundaryLen) + boundaryLen;
+                    }
+                }
+            }
+            int IndexOf(Byte[] buffer, int len, Byte[] boundarBytes)
+            {
+                for (int i = 0; i <= len - boundarBytes.Length; i++)
+                {
+                    Boolean match = true;
+                    for (int j = 0; j < boundarBytes.Length && match; j++)
+                    {
+                        match = buffer[i + j] == boundarBytes[j];
+                    }
+
+                    if (match)
+                    {
+                        return i;
+                    }
+                }
+                return -1;
+            }
+        }
+
+        /// <summary>
+        /// add comment method
+        /// </summary>
+        /// <param name="Comment"></param>
+        /// <param name="BookId">book  to add comment</param>
+        /// <param name="UserId"></param>
+        public void AddComment(string Comment, string BookId, int UserId)
         {
             if (string.IsNullOrEmpty(Comment))
                 return;
-            Comment = Comment.Replace("'","''");
+            Comment = Comment.Replace("'", "''");
             sqlCommand.CommandText = $"Insert into Review Values ({BookId},'{Comment}',{UserId})";
             sqlconn.Open();
             try
@@ -220,5 +399,6 @@ namespace BackEnd
             catch { }
             sqlconn.Close();
         }
+
     }
 }

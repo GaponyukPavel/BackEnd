@@ -12,17 +12,20 @@ namespace BackEnd
     {
 
         static HttpListener Hlistener = new HttpListener();
-        static string uri;
         static void Main(string[] args)
         {
-            Server("http://*:80/");
+            Server("*",80);
         }
-        static void Server(string uri)
+        /// <summary>
+        /// Start Listener on ip:port
+        /// </summary>
+        /// <param name="ip">server ip</param>
+        /// <param name="port">server port</param>
+        static void Server(string ip,int port)
         {
-            Program.uri = uri;
-            Hlistener.Prefixes.Add(uri);
+            Hlistener.Prefixes.Add($"http://{ip}:{port}/");
             Hlistener.Start();
-            Console.Write("Готово..");
+            Console.Write("Ready..");
             while (true)
             {
                 HttpListenerContext HContext = Hlistener.GetContext();

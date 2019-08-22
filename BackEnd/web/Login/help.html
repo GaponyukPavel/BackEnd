@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>BookShop</title>
+	<link rel="stylesheet" href="/css/main.css">
+	<link rel="stylesheet" href="/css/help.css">
+	<link rel="icon" href="/img/favicon.png" type="image/png" sizes="16x16">
+	<script src="/js/main.js"></script>
+	<script src="/js/help.js"></script>
+</head>
+<body>
+	<header>
+		<div class="container">
+			<nav>
+				<ul class="menu">
+					<li><a href="/profile.html">Профиль</a></li>
+					<li><a href="/help.html">Справка</a></li>
+					<li><a href="/index.html" onclick="exit();">Выйти</a></li>
+				</ul>
+			</nav>
+			<div class="top-panel">
+				<a href="/index.html" class="logo"><img src="/img/logo.png" alt="BookShop"></a>
+				<form action="/index.html" name="form" class="top-form" id="top-form">
+					<input type="text" name="search" placeholder="Введите название" autocomplete="off" class="top-form-text" maxlength="40">
+					<div class="under-img">
+						<a class="top-form-btn" id="top-form-btn"><img src="/img/search.png">Искать</a>
+					</div>
+				</form>
+				<div class="cart">
+					<a href="/cart.html" >
+					<div class="cartup">
+						<img src="/img/cart.png" alt="cart"><div id="space"></div><p>Корзина<br><span id="cartspan"></span></p>
+					</div>
+					<div class="cartdown">
+						<p id="cost"></p>
+					</div>
+					</a>
+				</div>
+			</div>
+		</div>
+	</header>
+	<section>
+		<div class="container">
+			<div class="MainHelpClass">
+				<h1>Справка:</h1>
+				<ul>
+ 				<li>
+ 					<a href="javascript:openWindow('publicOffer')" title="Публичная оферта" class="dashed">Публичная оферта </a>
+ 				</li>
+ 				<li>
+ 					<a href="javascript:openWindow('orderAndReceive')" title="Как оформить заказ?" class="dashed">Как заказать и получить товар? </a>
+ 				</li>
+ 				<li>
+ 					<a href="javascript:openWindow('payment')" title="Формы и способы оплаты" class="dashed">Формы и способы оплаты </a>
+ 				</li>
+ 				<li>
+ 					<a href="javascript:openWindow('receiveTypes')" title="Виды доставки" class="dashed">Виды доставки </a>
+ 				</li>
+ 				<li>
+ 					<a href="javascript:openWindow('orederRules')" title="Правила оформления и доставки заказа интернет-магазином" class="dashed">Правила оформления и доставки заказа, гарантии качества и конфиденциальности</a>
+ 				</li>
+ 				<li>
+ 					<a href="javascript:openWindow('buyingRules')" title="Правила приобретения электронных книг" class="dashed">Правила приобретения электронных книг </a>
+ 				</li>
+ 				</ul>
+				<h1>О компании:</h1>
+				<div class="mapdiv">
+				<iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d74009.18590586321!2d-1.3423882065429704!3d54.57250454373062!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x327e6cf26a4eed2e!2sDrake+The+Bookshop!5e0!3m2!1sru!2sby!4v1565711939831!5m2!1sru!2sby" width="400" height="300" frameborder="0" style="border:0;float:left; margin-right: 15px;" allowfullscreen></iframe>
+				<div>
+				Общество с ограниченной ответственностью «BookShop»<br>
+				Юридический адрес: 27 Silver St, Stockton-on-Tees TS18 1SX,<br>
+				Email: BookShop43@bk.ru<br>
+				+375 17 777 77 77<br>
+				+375 17 777 77 76 (факс)</div></div><br>
+				
+			</div>
+		</div>
+	</section>
+	<footer>
+		<div class="container">
+			<p>Общество с ограниченной ответственностью «BookShop»<br>
+			Юридический адрес: 27 Silver St, Stockton-on-Tees TS18 1SX <br>Email: BookShop43@bk.ru<br>
+			+375 17 777 77 77<br>+375 17 777 77 76 (факс)</p>
+		</div>
+	</footer>
+</body>
+</html>

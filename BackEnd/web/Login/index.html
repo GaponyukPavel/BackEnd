@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>BookShop</title>
+	<link rel="stylesheet" href="/css/main.css">
+	<link rel="icon" href="/img/favicon.png" type="image/png" sizes="16x16">
+	<script src="/js/main.js"></script>
+	<script src="/js/index.js"></script>
+	<script src="https://kit.fontawesome.com/517caedf15.js"></script>
+</head>
+<body>
+	<header>
+		
+		<div class="container">
+			<nav>
+				<ul class="menu">
+					<li><a href="/profile.html">Профиль</a></li>
+					<li><a href="/help.html">Справка</a></li>
+					<li><a href="/index.html" onclick="exit();">Выйти</a></li>
+				</ul>
+			</nav>
+			<div class="top-panel">
+				<a href="/index.html" class="logo"><img src="/img/logo.png" alt="BookShop"></a>
+				<form action="/index.html" name="form" class="top-form" id="top-form">
+					<input type="text" name="search" placeholder="Введите название" autocomplete="off" class="top-form-text" maxlength="40">
+					<div class="under-img">
+						<a class="top-form-btn" id="top-form-btn"><img src="/img/search.png">Искать</a>
+					</div>
+				</form>
+				<div class="cart">
+					<a href="/cart.html" >
+					<div class="cartup">
+						<img src="/img/cart.png" alt="cart"><div id="space"></div><p>Корзина<br><span id="cartspan"></span></p>
+					</div>
+					<div class="cartdown">
+						<p id="cost">0$</p>
+					</div>
+					</a>
+				</div>
+			</div>
+		</div>
+	</header>
+	<section>
+		<div class="container">
+			<div id="srchBY">Поиск: <span id="srchBYTxt"></span><i class="fas fa-times" id="cancelSearch"></i></div>
+			<div class="main">
+				<div class="category">
+					<div class="main_type">
+						<input type="radio" id="tab1" name="main" value="Все" checked="true"><label for="tab1"><a>Все</a></label>
+						<input type="radio" id="tab2" name="main" value="Бестселлеры"><label for="tab2"><a>Бестселлеры</a></label>
+						<input type="radio" id="tab3" name="main" value="Новинки"><label for="tab3"><a>Новинки</a></label>
+						<input type="radio" id="tab5" name="main" value="Распродажа"><label for="tab5"><a>Распродажа</a></label>
+					</div>
+					<div class="second_type">
+						<h3 style="margin-bottom: 5%;">Категории</h3>
+						<input type="radio" name="second" value="Все" id="tab2_1" checked="true"> <label for="tab2_1"><a>Все</a></label>
+						<input type="radio" name="second" value="Приключения" id="tab2_2"> <label for="tab2_2"><a>Приключения</a></label>
+						<input type="radio" name="second" value="Детские книги" id="tab2_3"> <label for="tab2_3"><a>Детские книги</a></label>
+						<input type="radio" name="second" value="Бизнес книги" id="tab2_4"> <label for="tab2_4"><a>Бизнес книги</a></label>
+						<input type="radio" name="second" value="Роман" id="tab2_5"> <label for="tab2_5"><a>Роман</a></label>
+						<input type="radio" name="second" value="Фантастика" id="tab2_6"> <label for="tab2_6"><a>Фантастика</a></label>
+						<input type="radio" name="second" value="Фэнтези" id="tab2_7"> <label for="tab2_7"><a>Фэнтези</a></label>
+						<input type="radio" name="second" value="Религия" id="tab2_8"> <label for="tab2_8"><a>Религия</a></label>
+						<input type="radio" name="second" value="Юмор" id="tab2_9"> <label for="tab2_9"><a>Юмор</a></label>
+						<input type="radio" name="second" value="Психология" id="tab2_10"> <label for="tab2_10"><a>Психология</a></label>
+						<input type="radio" name="second" value="Образование" id="tab2_11"> <label for="tab2_11"><a>Образование</a></label>
+						<input type="radio" name="second" value="Классика" id="tab2_12"> <label for="tab2_12"><a>Классика</a></label>
+						<input type="radio" name="second" value="Справочник" id="tab2_13"> <label for="tab2_13"><a>Справочники</a></label>
+						<input type="radio" name="second" value="Проза" id="tab2_14"> <label for="tab2_14"><a>Проза</a></label>
+						<input type="radio" name="second" value="Дом" id="tab2_15"> <label for="tab2_15"><a>Дом</a></label>
+						<input type="radio" name="second" value="Искуство" id="tab2_16"> <label for="tab2_16"><a>Искуство</a></label>
+						<input type="radio" name="second" value="Электроника" id="tab2_17"> <label for="tab2_17"><a>Электроника</a></label>
+						<input type="radio" name="second" value="Рассказы" id="tab2_18"> <label for="tab2_18"><a>Рассказы</a></label>
+					</div>
+				</div>
+				<div class="books" >
+					<table class="book_table">
+						<tr>
+							<td id="book1"></td>
+							<td id="book2"></td>
+							<td id="book3"></td>
+							<td id="book4"></td>
+							<td id="book5"></td>
+						</tr>
+						<tr>
+							<td id="book6"></td>
+							<td id="book7"></td>
+							<td id="book8"></td>
+							<td id="book9"></td>
+							<td id="book10"></td>
+						</tr>
+						<tr>
+							<td id="book11"></td>
+							<td id="book12"></td>
+							<td id="book13"></td>
+							<td id="book14"></td>
+							<td id="book15"></td>
+						</tr>
+					</table>
+					<div class="pages" id="pages">
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+	<footer>
+		<div class="container">
+			<p>Общество с ограниченной ответственностью «BookShop»<br>
+			Юридический адрес: 27 Silver St, Stockton-on-Tees TS18 1SX <br>Email: BookShop43@bk.ru<br>
+			+375 17 777 77 77<br>+375 17 777 77 76 (факс)</p>
+			<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3266.267393668023!2d-1.312288747170978!3d54.56437555350667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x327e6cf26a4eed2e!2sDrake+The+Bookshop!5e0!3m2!1sru!2sby!4v1565690374276!5m2!1sru!2sby" width="450" height="140" frameborder="0" style="" allowfullscreen></iframe>
+		</div>
+	</footer>
+</body>
+</html>

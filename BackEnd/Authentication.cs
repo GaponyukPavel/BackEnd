@@ -18,29 +18,30 @@ namespace BackEnd
         private SqlConnection SqlConn = new SqlConnection("Data Source = Pasha;Initial Catalog=BookShop;Integrated Security=true;");
         private SqlCommand SqlComm;
         string PasswordHash = "";
-        
+        static Regex regex = new Regex(@"^[^\W\s]+@?[^\W\s]+[-]?[^\W\s]+[.]?[^\W\s]+$");
+
         public Authentication()
         {
             SqlComm = SqlConn.CreateCommand();
         }
         
-        public void AddUser(string mail, string nick, string pass, Cookies cookie)
+        //add new user to DB
+        public void AddUser(string mail, string nick, string pass)
         {
-            MailAddress From = new MailAddress("BookShop43@mail.ru", "BookShop");//данные для письма
-            MailAddress To = new MailAddress(mail);//данные для письма
-
-            CheckForSymbols(6, 40, pass, mail, nick);
-            mail = mail.ToLower();
-            nick = nick.ToLower();
-            IsRepeated(mail, nick);
-            HashPass(pass);
-            SqlComm.CommandText = string.Format("Insert users (Email,NickName,Password,LogCookie,confirmed) Values('{0}','{1}','{2}','{3}','{4}')", mail, nick, PasswordHash,cookie.Value,Hash(mail));
+            CheckForSymbols(6, 40, mail, nick);
+            IsRepeated(mail.ToLower(), nick.ToLower());
+            PasswordHash=Hash(pass);    
+            SqlComm.CommandText = string.Format("Insert users (Email,NickName,Password,LogCookie,confirmed) Values('{0}','{1}','{2}','{3}','{4}')", mail.ToLower(), nick.ToLower(), PasswordHash,"",Hash(mail));
             SqlConn.Open();
             try
-            {//отправляет письмо и сохраняет user в БД
-                MailMessage mailMessage = new MailMessage(From, To);
-                mailMessage.IsBodyHtml = true;
-                mailMessage.Subject = "Registration on BookShop";
+            {
+                MailMessage mailMessage = new MailMessage()
+                {
+                    From = new MailAddress("ponypromasterpro@gmail.com", "BookShop"),
+                    IsBodyHtml = true,
+                    Subject = "Registration on BookShop"
+                };
+                mailMessage.To.Add(mail);
                 string page = "";
                 using (StreamReader streamReader = new StreamReader(Environment.CurrentDirectory + "/web/Not/mail.html"))
                 {
@@ -49,14 +50,22 @@ namespace BackEnd
                     page = page.Replace("test", Hash(mail));
                 }
                 mailMessage.Body = page;
-                SmtpClient smpt = new SmtpClient("smtp.mail.ru");
-                smpt.Credentials = new NetworkCredential("BookShop43@mail.ru", "pahanich1");
-                smpt.EnableSsl = true;
-                SqlComm.ExecuteNonQuery();
+
+                SmtpClient smpt = new SmtpClient("smtp.gmail.com")
+                {
+                    EnableSsl = true,
+                    Port = 587,
+                    DeliveryMethod= SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential("ponypromasterpro@gmail.com", "ponypromasterpro43")
+                };
+
                 smpt.Send(mailMessage);
+                SqlComm.ExecuteNonQuery();
             }
-            catch
+            catch(Exception e)
             {
+                Console.WriteLine(e);
                 throw new Exception("Ошибка!Данные введены неверно либо сервер не доступен!");
             }
             finally
@@ -65,7 +74,8 @@ namespace BackEnd
             }
 
         }
-        public bool Confirmed(NameValueCollection value,HttpListenerResponse HResponse,HttpListenerRequest HRequest )
+        //confirm user email. Return true if everything ok
+        public bool Confirmed(NameValueCollection value)
         {
             if (value["code"] == null)
                 return false;
@@ -76,8 +86,6 @@ namespace BackEnd
                 SqlDataReader reader = SqlComm.ExecuteReader();
                 if (reader.Read())
                 {
-                    Cookie cookie = new Cookies().CreateCockieWithHashPass((string)reader["email"], (string)reader["password"], HRequest.UserAgent);
-                    HResponse.Cookies.Add(cookie);
                     reader.Close();
                     SqlComm.CommandText = $"Update Users Set confirmed='true' Where confirmed='{value["code"]}'";
                     SqlComm.ExecuteNonQuery();
@@ -91,11 +99,17 @@ namespace BackEnd
                 return false;
             }
         }
-        public void Login(string email,string pass, Cookies cookie)
+        /// <summary>
+        /// Try login user by email and pass 
+        /// </summary>
+        /// <param name="email">user email</param>
+        /// <param name="pass">user pass </param>
+        /// <param name="cookie"></param>
+        public void Login(string email,string pass, CookiesClass cookie)
         {
             CheckForSymbols(6,40,pass,email);
             email = email.ToLower();
-            HashPass(pass);
+            PasswordHash=Hash(pass);
             SqlComm.CommandText =string.Format( "Select Email,Password,confirmed From Users Where Email ='{0}' AND Password ='{1}'",email, PasswordHash);
             SqlConn.Open();
             SqlDataReader sqlReader = SqlComm.ExecuteReader();
@@ -109,7 +123,7 @@ namespace BackEnd
                 if ((string)sqlReader["email"]==email||(string)sqlReader["password"]== PasswordHash)
                 {
                     sqlReader.Close();
-                    SqlComm.CommandText = String.Format("Update Users Set logcookie='{0}' Where Email='{1}' and Password='{2}'",cookie.Value,email, PasswordHash);
+                    SqlComm.CommandText = String.Format("Update Users Set logcookie='{0}' Where Email='{1}' and Password='{2}'",cookie.LoginValue, email, PasswordHash);
                     SqlComm.ExecuteNonQuery();
                     SqlConn.Close();
                     return;
@@ -121,30 +135,27 @@ namespace BackEnd
         /// <summary>
         /// Check all for size and null, params cheked for special symbols
         /// </summary>
-        /// <param name="minsize"></param>
-        /// <param name="maxsize"></param>
-        /// <param name="pass"></param>
-        /// <param name="strings"></param>
         void CheckForSymbols(int minsize, int maxsize, string pass,params string[] strings)
         {
-
-            if (pass.Length <= minsize || pass.Length >= maxsize|| pass==null)
+            if (pass == null)
             {
                 throw new Exception("Неверный размер даных.");
             }
             foreach (string value in strings)
             {
-                if (value.Length <= minsize || value.Length >= maxsize ||value == null)
+                if (value == null || value.Length <= minsize || value.Length >= maxsize)
                 {
                     throw new Exception("Неверный размер даных.");
                 }
-                Regex regex = new Regex(@"^[^\W\s]+@?[^\W\s]+[.]?[^\W\s]+$");
                 if (!regex.IsMatch(value))
                 {
                     throw new Exception("Значения содержат не алфавитно цифровые значения!");
                 }
             }
         }
+        /// <summary>
+        /// Check if in DB alredy user with that email or nickname
+        /// </summary>
         void IsRepeated(string mail, string name)
         {
             SqlConn.Open();
@@ -156,19 +167,13 @@ namespace BackEnd
                 throw new Exception((string)Request == mail ? "Этот email уже использован" : "Это имя уже используется");
             }
         }
-        void HashPass (string pass)
+        /// <summary>
+        /// Hash Method
+        /// </summary>
+        /// <param name="ValueToHash">Value you whant to hash</param>
+        public static string Hash(string ValueToHash)
         {
-            using (MD5 md5 = MD5.Create())
-            {
-                byte[] ByteHash = md5.ComputeHash(Encoding.UTF8.GetBytes(pass));
-                foreach (var value in ByteHash)
-                {
-                    PasswordHash +=value.ToString("x2");
-                }
-            }
-        }
-        static string Hash(string ValueToHash)
-        {
+            ValueToHash = "S@!7"+ValueToHash+ "S@!72";
             using (MD5 md5 = MD5.Create())
             {
                 byte[] ByteHash = md5.ComputeHash(Encoding.UTF8.GetBytes(ValueToHash));
